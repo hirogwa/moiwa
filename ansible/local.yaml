@@ -1,0 +1,15 @@
+---
+
+- name: db
+  hosts: dbhost
+  sudo: yes
+  gather_facts: no
+  roles:
+    - db
+
+- name: app
+  hosts: apphost
+  sudo: yes
+  user: vagrant
+  roles:
+    - app

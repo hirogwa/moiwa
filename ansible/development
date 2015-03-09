@@ -1,0 +1,13 @@
+[dbhost]
+192.168.1.100
+
+[dbhost:vars]
+database_name=vagrant
+db_username=vagrant
+db_password=usagi
+
+[apphost]
+192.168.1.100
+
+[apphost:vars]
+app_dir=/home/vagrant/moiwa
