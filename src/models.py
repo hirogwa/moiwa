@@ -15,7 +15,7 @@ class User(db.Model):
 
 
 class WatchLog(db.Model):
-    log_id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     artwork_id = db.Column(db.Integer, db.ForeignKey('artwork.id'))
     viewdate = db.Column(db.DateTime)
