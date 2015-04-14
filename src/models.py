@@ -7,17 +7,15 @@ class Artwork(db.Model):
     year = db.Column(db.Integer)
     watchlogs = db.relationship('WatchLog', backref='artwork', lazy='dynamic')
 
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True)
-    watchlogs = db.relationship('WatchLog', backref='user', lazy='dynamic')
+    def __init__(self, kwargs):
+        self.name = kwargs.get('name')
+        self.year = kwargs.get('year')
 
 
 class WatchLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     artwork_id = db.Column(db.Integer, db.ForeignKey('artwork.id'))
     viewdate = db.Column(db.DateTime)
     log = db.Column(db.Text)
     entrydate = db.Column(db.DateTime)
+    # poster_url

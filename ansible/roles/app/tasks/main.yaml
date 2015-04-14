@@ -8,6 +8,7 @@
     - python3-setuptools
     - libpq-dev
     - ruby-sass
+    - python3-tk
 
 - name: install python requirements, from project repo
   sudo: yes

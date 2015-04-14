@@ -1,0 +1,6 @@
+select {
+    width: 600px;
+}
+.selected {
+    border: 2px solid;
+}
