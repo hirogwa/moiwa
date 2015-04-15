@@ -64,6 +64,7 @@ def videos():
 
     return Response(json.dumps(ret), mimetype='application/json')
 
+
 @app.route('/search-artwork', methods=['GET'])
 def search_artwork():
     query = quote(request.args.get('title'))
