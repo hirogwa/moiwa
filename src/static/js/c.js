@@ -56,37 +56,36 @@ $(function() {
 
     var VideoListView = Backbone.View.extend({
         initialize: function(options) {
-            _.bindAll(this, 'render', 'addVideo');
+            _.bindAll(this, 'render', 'renderAdd', 'addVideo');
             this.template = options.template;
-            this.videoViewTemplate = options.videoViewTemplate;
             this.collection.on('add', this.addVideo);
-
-            this.videoViews = [];
         },
 
         addVideo: function(video) {
-            this.videoViews.push(new VideoView({
-                model: video,
-                template: this.videoViewTemplate
-            }));
-            if (this.collection.length === 5) {
-                this.render();
-            }
+            return this.renderAdd(video);
         },
 
         render: function() {
             this.$el.html(this.template());
-            this.videoViews.forEach(function(v) {
-                this.$('#videos').append(v.render().el);
+            this.collection.forEach(function(v) {
+                this.renderAdd(v);
             }, this);
+            return this;
+        },
+
+        renderAdd: function(video) {
+            this.$('#videos').append(new VideoView({
+                model: video
+            }).render().el);
             return this;
         }
     });
 
+    var videoViewTemplate = _.template($('#video-template').html());
     var VideoView = Backbone.View.extend({
         initialize: function(options) {
             _.bindAll(this, 'render');
-            this.template = options.template;
+            this.template = videoViewTemplate;
             this.model.on('change', this.render);
         },
         render: function(model) {
@@ -96,7 +95,8 @@ $(function() {
                 } else {
                     this.$el.removeClass('selected');
                 }
-            } else {
+            }
+            if (!model || model.changedAttributes('id')) {
                 this.$el.html(this.template({model: this.model.toJSON()}));
             }
             return this;
@@ -111,26 +111,20 @@ $(function() {
         },
 
         initialize: function() {
-            _.bindAll(this, 'render', 'selectVideo');
+            _.bindAll(this, 'render', 'selectVideo', 'videoIdChanged');
             this.watchLog = new WatchLog();
             this.videoCandidates = new VideoList();
 
             this.templateTitleEntry = _.template($('#title-entry').html());
             this.videoListView = new VideoListView({
                 template: _.template($('#video-list-template').html()),
-                videoViewTemplate: _.template($('#video-template').html()),
                 collection: this.videoCandidates
             });
             this.render();
         },
 
-        videoIdChanged: function(e) {
-            this.videoSelected = new Video({id: $(e.currentTarget).val()});
-            console.log(this.videoSelected);
-        },
-
-        selectVideo: function(e) {
-            var newlySelected = this.videoCandidates.find(function(v) {
+        selectVideo: function(e, video) {
+            var newlySelected = video || this.videoCandidates.find(function(v) {
                 return v.id === $(e.currentTarget).data('video-id');
             });
             if (newlySelected !== this.videoSelected) {
@@ -140,6 +134,24 @@ $(function() {
                 this.videoSelected = newlySelected;
                 this.videoSelected.set({selected: true});
             }
+            return this;
+        },
+
+        videoIdChanged: function(e) {
+            var id = $(e.currentTarget).val();
+            if (!id) {
+                return this;
+            }
+
+            var selected = this.videoCandidates.find(function(v) {
+                return v.id === id;
+            });
+            if  (!selected) {
+                selected = new Video({id: id});
+                this.videoCandidates.push(selected);
+            }
+            this.selectVideo(undefined, selected);
+            $(e.currentTarget).val('');
             return this;
         },
 
