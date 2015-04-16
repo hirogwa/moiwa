@@ -1,48 +1,16 @@
 $(function() {
+    var Artwork = Backbone.Model.extend({
+    });
+
     var WatchLog = Backbone.Model.extend({
         defaults: {
             title: "New Title...",
-            poster_url: undefined
+            poster_url: '',
+            tmdb_id: '',
+            video_id: ''
         },
         url: '/watchlog'
     });
-
-    var formatResult = function(result) {
-        if (result.loading) {
-            return result.text;
-        }
-        return '<div>' +
-            '<img src="' + result.poster_xs + '"/>' +
-            '<span>' + result.title + '</span>' +
-            '</div>';
-    };
-
-    var formatSelection = function(item) {
-        return item.title || item.name;
-    };
-
-    var getVideos = function(title, videoList) {
-        videoList.reset();
-        $.ajax({
-            url: '/videos',
-            data: {
-                title: title
-            },
-            dataType: 'json',
-            success: function(data) {
-                console.log(data);
-                data.videos.forEach(function(video) {
-                    videoList.add(new Video({
-                        id: video.id,
-                        title: video.title
-                    }));
-                });
-            },
-            failure: function() {
-                console.log('failure');
-            }
-        });
-    };
 
     var Video = Backbone.Model.extend({
         defaults: {
@@ -54,11 +22,13 @@ $(function() {
         model: Video
     });
 
+    var videoListViewTemplate = _.template($('#video-list-template').html());
     var VideoListView = Backbone.View.extend({
         initialize: function(options) {
             _.bindAll(this, 'render', 'renderAdd', 'addVideo');
-            this.template = options.template;
+            this.template = videoListViewTemplate;
             this.collection.on('add', this.addVideo);
+            this.collection.on('reset', this.render);
         },
 
         addVideo: function(video) {
@@ -107,25 +77,41 @@ $(function() {
         el: $('#log-entry'),
         events: {
             'click button.select-video': 'selectVideo',
-            'change input#video-id': 'videoIdChanged'
+            'change input#video-id': 'videoIdChanged',
+            'click button#save-log': 'saveWatchLog',
+            'change input#watchlog-title-manual-entry': 'changeLogTitle'
         },
 
         initialize: function() {
-            _.bindAll(this, 'render', 'selectVideo', 'videoIdChanged');
-            this.watchLog = new WatchLog();
+            _.bindAll(this, 'render', 'renderOnArtworkChange', 'renderAll',
+                      'selectVideo', 'videoIdChanged', 'changeLogTitle');
+            this.artwork = new Artwork();
+            this.artwork.on('change', this.renderOnArtworkChange);
+            this.watchLog = new WatchLog({artwork: this.artwork});
+            this.watchLog.on('change', this.render);
             this.videoCandidates = new VideoList();
-
-            this.templateTitleEntry = _.template($('#title-entry').html());
             this.videoListView = new VideoListView({
-                template: _.template($('#video-list-template').html()),
                 collection: this.videoCandidates
             });
+
+            this.template = _.template($('#log-entry-template').html());
             this.render();
         },
 
+        changeLogTitle: function(e) {
+            this.watchLog.set({'title': $(e.currentTarget).val()});
+            return this;
+        },
+
+        saveWatchLog: function() {
+            console.log(this.watchLog);
+            this.watchLog.save();
+        },
+
         selectVideo: function(e, video) {
+            var videoId = $(e.currentTarget).data('video-id');
             var newlySelected = video || this.videoCandidates.find(function(v) {
-                return v.id === $(e.currentTarget).data('video-id');
+                return v.id === videoId;
             });
             if (newlySelected !== this.videoSelected) {
                 if (this.videoSelected) {
@@ -134,6 +120,7 @@ $(function() {
                 this.videoSelected = newlySelected;
                 this.videoSelected.set({selected: true});
             }
+            this.watchLog.set({video_id: videoId});
             return this;
         },
 
@@ -155,11 +142,23 @@ $(function() {
             return this;
         },
 
-        render: function() {
-            this.$el.html(this.templateTitleEntry({
-                watchLog: this.watchLog.toJSON()
+        renderOnArtworkChange: function() {
+            return this.renderAll();
+        },
+
+        render: function(model) {
+            if (!model || model.changed['tmdb_id']) {
+                return this.renderAll(model);
+            }
+            return this;
+        },
+
+        renderAll: function() {
+            this.$el.html(this.template({
+                watchLog: this.watchLog.toJSON(),
+                artwork: this.artwork.toJSON()
             }));
-            this.$el.append(this.videoListView.render().el);
+            this.$('#video-list').append(this.videoListView.render().el);
 
             var self = this;
             var titleSelect = '#title-select';
@@ -174,7 +173,6 @@ $(function() {
                         };
                     },
                     processResults: function(data, page) {
-                        self.videoCandidates.reset();
                         return {
                             results: data.results.map(function(result) {
                                 result.poster_xs = data.image_xs + result.poster_path
@@ -186,25 +184,67 @@ $(function() {
                 escapeMarkup: function(markup) {return markup;},
                 minimumInputLength: 1,
                 templateResult: function(result) {
-                    result.title = result.title || result.name;
+                    result.original_title = result.original_title ||
+                        result.original_name;
                     return formatResult(result);
                 },
                 templateSelection: function(item) {
                     return formatSelection(item);
                 }
             });
+
             $(titleSelect).on('change', function(e) {
                 var item = $(titleSelect).select2('data')[0];
-                self.watchLog.set({
-                    'title': item.title,
-                    'poster_url': item.poster_xs
+                self.artwork.set({
+                    'tmdb_id': item.id,
+                    'original_title': item.original_title || item.original_name,
+                    'title': item.title || item.name,
+                    'poster_url': item.poster_xs,
                 });
-                getVideos(item.title, self.videoCandidates);
+                self.watchLog.set({
+                });
+                getVideos(item.original_title, self.videoCandidates);
             });
 
             return this;
         }
     });
+
+    var formatResult = function(result) {
+        if (result.loading) {
+            return result.text;
+        }
+        return '<div>' +
+            '<img src="' + result.poster_xs + '"/>' +
+            '<span>' + result.original_title + '</span>' +
+            '</div>';
+    };
+
+    var formatSelection = function(item) {
+        return item.title;
+    };
+
+    var getVideos = function(title, videoList) {
+        videoList.reset();
+        $.ajax({
+            url: '/videos',
+            data: {
+                title: title
+            },
+            dataType: 'json',
+            success: function(data) {
+                data.videos.forEach(function(video) {
+                    videoList.add(new Video({
+                        id: video.id,
+                        title: video.title
+                    }));
+                });
+            },
+            failure: function() {
+                console.log('failure');
+            }
+        });
+    };
 
     var logEntryView = new LogEntryView();
 });

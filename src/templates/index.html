@@ -7,29 +7,63 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/backbone-localstorage.js/1.1.16/backbone.localStorage.js"></script>
 <link href="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0-rc.2/css/select2.min.css" rel="stylesheet" />
 <script src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0-rc.2/js/select2.min.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+
 <link rel="stylesheet" type="text/css" href="/static/css/style.css">
 <script type="text/javascript" src="/static/js/esnext.js"></script>
 <script type="text/javascript" src="/static/js/c.js"></script>
 <h3>Moiwa</h3>
 
 <div id="log-entry">
-  <script type="text/template" id="title-entry">
+
+  <script type="text/template" id="log-entry-template">
     <select id="title-select">
-      <option title="<%= watchLog.title  %>"></option>
+      <option title="<%= artwork.original_title  %>"></option>
     </select>
-    <img src="<%= watchLog.poster_url %>" alt="" />
-  </script>
-  <script type="text/template" id="video-list-template">
-    <div id="videos">
+    <img src="<%= artwork.poster_url %>" alt="" />
+    <div id="watchlog-title">
+      <form>
+        <% if (artwork && artwork.original_title) { %>
+        <div class="radio">
+          <label>
+            <input type="radio" name="log-title" value="" /> <%= artwork.original_title %>
+          </label>
+        </div>
+        <% } %>
+        <% if (artwork && artwork.title && artwork.original_title !== artwork.title) { %>
+        <div class="radio">
+          <label>
+            <input type="radio" name="log-title" value="" /> <%= artwork.title %>
+          </label>
+        </div>
+        <% } %>
+        <input id="watchlog-title-manual-entry" type="text" class="form-control"
+               name="log-title" placeholder="or enter manually"
+               text="<%= watchLog.title %>" />
+      </form>
     </div>
-    <input id="video-id" type="text" placeholder="enter video id..."/>
-  </script>
-  <script type="text/template" id="video-template">
-    <% if (model.id) { %>
-    <iframe width="420" height="315" src="https://www.youtube.com/embed/<%= model.id %>" frameborder="0" allowfullscreen></iframe>
-    <button class="select-video" data-video-id="<%= model.id %>">kore</button>
-    <% } %>
+    <div id="video-list">
+    </div>
+    <textarea class="form-control"></textarea>
+    <button id="save-log" class="btn btn-primary">
+      Save
+    </button>
   </script>
 </div>
+
+<script type="text/template" id="video-template">
+  <% if (model.id) { %>
+  <iframe width="420" height="315" src="https://www.youtube.com/embed/<%= model.id %>" frameborder="0" allowfullscreen></iframe>
+  <button class="select-video btn btn-default btn-sm"
+          data-video-id="<%= model.id %>">kore</button>
+  <% } %>
+</script>
+<script type="text/template" id="video-list-template">
+  <div id="videos">
+  </div>
+  <input id="video-id" type="text" class="form-control"
+         placeholder="enter video id to add..."/>
+</script>
 
 {% endblock %}
