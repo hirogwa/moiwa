@@ -4,17 +4,16 @@ $(function() {
 
     var WatchLog = Backbone.Model.extend({
         defaults: {
-            title: "New Title...",
-            poster_url: '',
-            tmdb_id: '',
-            video_id: ''
+            title: "",
+            video_id: '',
+            date: new Date().toISOString().slice(0, 10)
         },
         url: '/watchlog'
     });
 
     var Video = Backbone.Model.extend({
         defaults: {
-            id: undefined
+            id: ''
         }
     });
 
@@ -25,14 +24,10 @@ $(function() {
     var videoListViewTemplate = _.template($('#video-list-template').html());
     var VideoListView = Backbone.View.extend({
         initialize: function(options) {
-            _.bindAll(this, 'render', 'renderAdd', 'addVideo');
+            _.bindAll(this, 'render', 'renderAdd');
             this.template = videoListViewTemplate;
-            this.collection.on('add', this.addVideo);
+            this.collection.on('add', this.renderAdd);
             this.collection.on('reset', this.render);
-        },
-
-        addVideo: function(video) {
-            return this.renderAdd(video);
         },
 
         render: function() {
@@ -53,17 +48,19 @@ $(function() {
 
     var videoViewTemplate = _.template($('#video-template').html());
     var VideoView = Backbone.View.extend({
-        initialize: function(options) {
+        initialize: function() {
             _.bindAll(this, 'render');
             this.template = videoViewTemplate;
             this.model.on('change', this.render);
         },
+
         render: function(model) {
-            if (model && model.changedAttributes('selected')) {
-                if (this.model.get('selected')) {
-                    this.$el.addClass('selected');
+            var attrSelected = 'selected';
+            if (model && model.changedAttributes(attrSelected)) {
+                if (this.model.get(attrSelected)) {
+                    this.$el.addClass(attrSelected);
                 } else {
-                    this.$el.removeClass('selected');
+                    this.$el.removeClass(attrSelected);
                 }
             }
             if (!model || model.changedAttributes('id')) {
@@ -77,17 +74,19 @@ $(function() {
         el: $('#log-entry'),
         events: {
             'click button.select-video': 'selectVideo',
-            'change input#video-id': 'videoIdChanged',
             'click button#save-log': 'saveWatchLog',
-            'change input#watchlog-title-manual-entry': 'changeLogTitle'
+            'click button#add-video-id': 'videoIdChanged',
+            'change input#watchlog-title-manual-entry': 'changeLogTitle',
+            'change input#watch-date': 'changeWatchDate'
         },
 
         initialize: function() {
             _.bindAll(this, 'render', 'renderOnArtworkChange', 'renderAll',
-                      'selectVideo', 'videoIdChanged', 'changeLogTitle');
-            this.artwork = new Artwork();
-            this.artwork.on('change', this.renderOnArtworkChange);
-            this.watchLog = new WatchLog({artwork: this.artwork});
+                      'selectVideo', 'videoIdChanged', 'changeLogTitle',
+                      'changeWatchDate');
+            var artwork = new Artwork();
+            artwork.on('change', this.renderOnArtworkChange);
+            this.watchLog = new WatchLog({artwork: artwork});
             this.watchLog.on('change', this.render);
             this.videoCandidates = new VideoList();
             this.videoListView = new VideoListView({
@@ -96,6 +95,11 @@ $(function() {
 
             this.template = _.template($('#log-entry-template').html());
             this.render();
+        },
+
+        changeWatchDate: function(e) {
+            this.watchLog.set({'date': $(e.currentTarget).val()});
+            return this;
         },
 
         changeLogTitle: function(e) {
@@ -109,7 +113,7 @@ $(function() {
         },
 
         selectVideo: function(e, video) {
-            var videoId = $(e.currentTarget).data('video-id');
+            var videoId = e ? $(e.currentTarget).data('video-id') : video.id;
             var newlySelected = video || this.videoCandidates.find(function(v) {
                 return v.id === videoId;
             });
@@ -125,7 +129,8 @@ $(function() {
         },
 
         videoIdChanged: function(e) {
-            var id = $(e.currentTarget).val();
+            var elId = '#video-id';
+            var id = $(elId).val();
             if (!id) {
                 return this;
             }
@@ -133,12 +138,12 @@ $(function() {
             var selected = this.videoCandidates.find(function(v) {
                 return v.id === id;
             });
-            if  (!selected) {
+            if (!selected) {
                 selected = new Video({id: id});
                 this.videoCandidates.push(selected);
             }
             this.selectVideo(undefined, selected);
-            $(e.currentTarget).val('');
+            $(elId).val('');
             return this;
         },
 
@@ -150,13 +155,16 @@ $(function() {
             if (!model || model.changed['tmdb_id']) {
                 return this.renderAll(model);
             }
+            if (model.changed['title']) {
+                this.$('#watchlog-title').val(model.get('title'));
+            }
             return this;
         },
 
         renderAll: function() {
             this.$el.html(this.template({
                 watchLog: this.watchLog.toJSON(),
-                artwork: this.artwork.toJSON()
+                artwork: this.watchLog.get('artwork').toJSON()
             }));
             this.$('#video-list').append(this.videoListView.render().el);
 
@@ -195,13 +203,17 @@ $(function() {
 
             $(titleSelect).on('change', function(e) {
                 var item = $(titleSelect).select2('data')[0];
-                self.artwork.set({
+                var original_title = item.original_title || item.original_name;
+                var title = item.title || item.name;
+                self.watchLog.get('artwork').set({
                     'tmdb_id': item.id,
-                    'original_title': item.original_title || item.original_name,
-                    'title': item.title || item.name,
+                    'original_title': original_title,
+                    'title': title,
                     'poster_url': item.poster_xs,
+                    'release_date': item.release_date
                 });
                 self.watchLog.set({
+                    'title': original_title || title
                 });
                 getVideos(item.original_title, self.videoCandidates);
             });

@@ -9,6 +9,7 @@
 <script src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.0-rc.2/js/select2.min.js"></script>
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
 
 <link rel="stylesheet" type="text/css" href="/static/css/style.css">
 <script type="text/javascript" src="/static/js/esnext.js"></script>
@@ -22,30 +23,31 @@
       <option title="<%= artwork.original_title  %>"></option>
     </select>
     <img src="<%= artwork.poster_url %>" alt="" />
-    <div id="watchlog-title">
-      <form>
-        <% if (artwork && artwork.original_title) { %>
-        <div class="radio">
-          <label>
-            <input type="radio" name="log-title" value="" /> <%= artwork.original_title %>
-          </label>
-        </div>
-        <% } %>
-        <% if (artwork && artwork.title && artwork.original_title !== artwork.title) { %>
-        <div class="radio">
-          <label>
-            <input type="radio" name="log-title" value="" /> <%= artwork.title %>
-          </label>
-        </div>
-        <% } %>
-        <input id="watchlog-title-manual-entry" type="text" class="form-control"
-               name="log-title" placeholder="or enter manually"
-               text="<%= watchLog.title %>" />
-      </form>
+
+    <% if (artwork) { %>
+    <div id="artwork-info">
+      <% if (artwork.original_title) { %>
+      <div>
+        <label><%= artwork.original_title %></label><br>
+      </div>
+      <% } %>
+      <% if (artwork.title && artwork.original_title !== artwork.title) { %>
+      <div>
+        <label><%= artwork.title %></label><br>
+      </div>
+      <span>released: <% } %></span>
+      <%= artwork.release_date %>
     </div>
+    <% } %>
+
+    <input id="watchlog-title" type="text" class="form-control"
+           name="log-title" placeholder="entry title"
+           text="<%= watchLog.title %>" />
     <div id="video-list">
     </div>
-    <textarea class="form-control"></textarea>
+    <textarea class="form-control" rows="7"></textarea>
+    <input id="watch-date" type="date" class="form-control"
+           value="<%= watchLog.date %>" />
     <button id="save-log" class="btn btn-primary">
       Save
     </button>
@@ -62,8 +64,13 @@
 <script type="text/template" id="video-list-template">
   <div id="videos">
   </div>
-  <input id="video-id" type="text" class="form-control"
-         placeholder="enter video id to add..."/>
+  <form class="form-inline">
+    <input id="video-id" type="text" class="form-control"
+           placeholder="enter video id to add..."/>
+    <button id="add-video-id" type="submit" class="btn btn-default">
+      <i class="fa fa-plus"></i>
+    </button>
+  </form>
 </script>
 
 {% endblock %}
