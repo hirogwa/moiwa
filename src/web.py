@@ -47,10 +47,8 @@ def videos():
         settings.YOUTUBE_API_KEY,
         query
     )
-    print(uri)
-    resource = urlopen(uri)
-    result = resource.read().decode(resource.headers.get_content_charset())
-    ret = json.loads(result)
+
+    result = resourceAsDict(uri)
 
     def get_video(api_item):
         return {
@@ -58,8 +56,8 @@ def videos():
             'title': api_item.get('snippet').get('title')
         }
     ret = {
-        'videos': list(map(get_video, ret.get('items'))),
-        'all': ret.get('items')
+        'videos': list(map(get_video, result.get('items'))),
+        'all': result.get('items')
     }
 
     return Response(json.dumps(ret), mimetype='application/json')
@@ -82,6 +80,22 @@ def search_artwork():
     }
 
     return Response(json.dumps(ret), mimetype='application/json')
+
+
+@app.route('/artwork_images', methods=['GET'])
+def artwork_images():
+    id = request.args.get('id')
+    url = '%s/%s/images?api_key=%s' % (
+        settings.MOVIE_URL, id, settings.TMDB_API_KEY)
+    data = resourceAsDict(url)
+    return Response(json.dumps(data), mimetype='application/json')
+
+
+def resourceAsDict(url):
+    print(url)
+    resource = urlopen(url)
+    result = resource.read().decode(resource.headers.get_content_charset())
+    return json.loads(result)
 
 
 @app.route('/')
