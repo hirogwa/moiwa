@@ -130,6 +130,8 @@ $(function() {
     var LogEntryView = Backbone.View.extend({
         el: $('#log-entry'),
         events: {
+            'click #poster-list button.select-image': 'selectPoster',
+            'click #backdrop-list button.select-image': 'selectBackdrop',
             'click button.select-video': 'selectVideo',
             'click button#save-log': 'saveWatchLog',
             //'click button#add-video-id': 'addVideo',
@@ -139,9 +141,19 @@ $(function() {
         },
 
         initialize: function() {
-            _.bindAll(this, 'render', 'renderOnArtworkChange', 'renderAll',
-                      'selectVideo', 'addVideo', 'changeLogTitle',
-                      'changeWatchDate', 'getImages', 'getVideos');
+            _.bindAll(this,
+                      'render',
+                      'renderOnArtworkChange',
+                      'renderAll',
+                      'changeLogTitle',
+                      'selectPoster',
+                      'selectBackdrop',
+                      'addVideo',
+                      'selectVideo',
+                      'changeWatchDate',
+                      'getImages',
+                      'getVideos');
+
             var artwork = new Artwork();
             artwork.on('change', this.renderOnArtworkChange);
             this.watchLog = new WatchLog({artwork: artwork});
@@ -178,10 +190,46 @@ $(function() {
             this.watchLog.save();
         },
 
+        selectImage: function(e, collection, current) {
+            var filePath = $(e.currentTarget).data('image-file-path');
+            var newlySelected = collection.find(function(image) {
+                return image.get('file_path') === filePath;
+            });
+            if (newlySelected != current) {
+                if (current) {
+                    current.set({selected: false});
+                }
+                newlySelected.set({selected: true});
+            }
+            return newlySelected;
+        },
+
+        selectPoster: function(e) {
+            this.watchLog.set({
+                poster: this.selectImage(
+                    e,
+                    this.posterCandidates,
+                    this.watchLog.get('poster')
+                )
+            });
+            return this;
+        },
+
+        selectBackdrop: function(e) {
+            this.watchLog.set({
+                backdrop: this.selectImage(
+                    e,
+                    this.backdropCandidates,
+                    this.watchLog.get('backdrop')
+                )
+            });
+            return this;
+        },
+
         selectVideo: function(e, video) {
             var videoId = e ? $(e.currentTarget).data('video-id') : video.id;
             var newlySelected = video || this.videoCandidates.find(function(v) {
-                return v.id === videoId;
+                return v.get('id') === videoId;
             });
             if (newlySelected !== this.videoSelected) {
                 if (this.videoSelected) {
