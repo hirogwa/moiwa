@@ -11,6 +11,62 @@ $(function() {
         url: '/watchlog'
     });
 
+    var Image = Backbone.Model;
+
+    var ImageList = Backbone.Collection.extend({
+        model: Image
+    });
+
+    var imageViewTemplate = _.template($('#image-template').html());
+    var ImageView = Backbone.View.extend({
+        initialize: function() {
+            _.bindAll(this, 'render');
+            this.template = imageViewTemplate;
+            this.model.on('change', this.render);
+        },
+
+        render: function(model) {
+            var attrSelected = 'selected';
+            if (!model) {
+                this.$el.html(this.template({image: this.model.toJSON()}));
+                return this;
+            }
+            if (model.changedAttributes(attrSelected)) {
+                if (this.model.get(attrSelected)) {
+                    this.$el.addClass(attrSelected);
+                } else {
+                    this.$el.removeClass(attrSelected);
+                }
+            }
+            return this;
+        }
+    });
+
+    var imageListViewTemplate = _.template($('#image-list-template').html());
+    var ImageListView = Backbone.View.extend({
+        initialize: function() {
+            _.bindAll(this, 'render', 'renderAdd');
+            this.template = imageListViewTemplate;
+            this.collection.on('add', this.renderAdd);
+            this.collection.on('reset', this.render);
+        },
+
+        render: function() {
+            this.$el.html(this.template());
+            this.collection.forEach(function(image) {
+                this.renderAdd(image);
+            }, this);
+            return this;
+        },
+
+        renderAdd: function(image) {
+            this.$('#images').append(new ImageView({
+                model: image
+            }).render().el);
+            return this;
+        }
+    });
+
     var Video = Backbone.Model.extend({
         defaults: {
             id: ''
@@ -19,6 +75,31 @@ $(function() {
 
     var VideoList = Backbone.Collection.extend({
         model: Video
+    });
+
+    var videoViewTemplate = _.template($('#video-template').html());
+    var VideoView = Backbone.View.extend({
+        initialize: function() {
+            _.bindAll(this, 'render');
+            this.template = videoViewTemplate;
+            this.model.on('change', this.render);
+        },
+
+        render: function(model) {
+            var attrSelected = 'selected';
+            if (!model) {
+                this.$el.html(this.template({model: this.model.toJSON()}));
+                return this;
+            }
+            if (model.changedAttributes(attrSelected)) {
+                if (this.model.get(attrSelected)) {
+                    this.$el.addClass(attrSelected);
+                } else {
+                    this.$el.removeClass(attrSelected);
+                }
+            }
+            return this;
+        }
     });
 
     var videoListViewTemplate = _.template($('#video-list-template').html());
@@ -46,48 +127,33 @@ $(function() {
         }
     });
 
-    var videoViewTemplate = _.template($('#video-template').html());
-    var VideoView = Backbone.View.extend({
-        initialize: function() {
-            _.bindAll(this, 'render');
-            this.template = videoViewTemplate;
-            this.model.on('change', this.render);
-        },
-
-        render: function(model) {
-            var attrSelected = 'selected';
-            if (model && model.changedAttributes(attrSelected)) {
-                if (this.model.get(attrSelected)) {
-                    this.$el.addClass(attrSelected);
-                } else {
-                    this.$el.removeClass(attrSelected);
-                }
-            }
-            if (!model || model.changedAttributes('id')) {
-                this.$el.html(this.template({model: this.model.toJSON()}));
-            }
-            return this;
-        }
-    });
-
     var LogEntryView = Backbone.View.extend({
         el: $('#log-entry'),
         events: {
             'click button.select-video': 'selectVideo',
             'click button#save-log': 'saveWatchLog',
-            'click button#add-video-id': 'videoIdChanged',
+            //'click button#add-video-id': 'addVideo',
+            'change input#video-id': 'addVideo',
             'change input#watchlog-title-manual-entry': 'changeLogTitle',
             'change input#watch-date': 'changeWatchDate'
         },
 
         initialize: function() {
             _.bindAll(this, 'render', 'renderOnArtworkChange', 'renderAll',
-                      'selectVideo', 'videoIdChanged', 'changeLogTitle',
-                      'changeWatchDate');
+                      'selectVideo', 'addVideo', 'changeLogTitle',
+                      'changeWatchDate', 'getImages', 'getVideos');
             var artwork = new Artwork();
             artwork.on('change', this.renderOnArtworkChange);
             this.watchLog = new WatchLog({artwork: artwork});
             this.watchLog.on('change', this.render);
+            this.posterCandidates = new ImageList();
+            this.posterListView = new ImageListView({
+                collection: this.posterCandidates
+            });
+            this.backdropCandidates = new ImageList();
+            this.backdropListView = new ImageListView({
+                collection: this.backdropCandidates
+            });
             this.videoCandidates = new VideoList();
             this.videoListView = new VideoListView({
                 collection: this.videoCandidates
@@ -128,7 +194,7 @@ $(function() {
             return this;
         },
 
-        videoIdChanged: function(e) {
+        addVideo: function(id) {
             var elId = '#video-id';
             var id = $(elId).val();
             if (!id) {
@@ -140,9 +206,9 @@ $(function() {
             });
             if (!selected) {
                 selected = new Video({id: id});
-                this.videoCandidates.push(selected);
+                this.videoCandidates.add(selected);
             }
-            this.selectVideo(undefined, selected);
+            this.selectVideo(null, selected);
             $(elId).val('');
             return this;
         },
@@ -166,6 +232,8 @@ $(function() {
                 watchLog: this.watchLog.toJSON(),
                 artwork: this.watchLog.get('artwork').toJSON()
             }));
+            this.$('#poster-list').append(this.posterListView.render().el);
+            this.$('#backdrop-list').append(this.backdropListView.render().el);
             this.$('#video-list').append(this.videoListView.render().el);
 
             var self = this;
@@ -215,10 +283,65 @@ $(function() {
                 self.watchLog.set({
                     'title': original_title || title
                 });
-                getVideos(item.original_title, self.videoCandidates);
+                self.getImages(item);
+                self.getVideos(item.original_title);
             });
 
             return this;
+        },
+
+        getImages: function(item) {
+            this.posterCandidates.reset();
+            this.backdropCandidates.reset();
+            var self = this;
+            $.ajax({
+                url: 'artwork_images',
+                data: {
+                    id: item.id,
+                    media_type: item.media_type
+                },
+                dataType: 'json',
+                success: function(data) {
+                    data.backdrops.forEach(function(b) {
+                        self.backdropCandidates.add(new Image({
+                            file_path: b.file_path,
+                            uri: b.sample_uri
+                        }));
+                    });
+                    data.posters.forEach(function(p) {
+                        self.posterCandidates.add(new Image({
+                            file_path: p.file_path,
+                            uri: p.sample_uri
+                        }));
+                    });
+                },
+                failure: function(data) {
+                    console.log('failed to load images');
+                }
+            });
+        },
+
+        getVideos: function(title) {
+            this.videoCandidates.reset();
+            var self = this;
+            $.ajax({
+                url: '/videos',
+                data: {
+                    title: title
+                },
+                dataType: 'json',
+                success: function(data) {
+                    data.videos.forEach(function(video) {
+                        self.videoCandidates.add(new Video({
+                            id: video.id,
+                            title: video.title
+                        }));
+                    });
+                },
+                failure: function() {
+                    console.log('failure');
+                }
+            });
         }
     });
 
@@ -234,28 +357,6 @@ $(function() {
 
     var formatSelection = function(item) {
         return item.title;
-    };
-
-    var getVideos = function(title, videoList) {
-        videoList.reset();
-        $.ajax({
-            url: '/videos',
-            data: {
-                title: title
-            },
-            dataType: 'json',
-            success: function(data) {
-                data.videos.forEach(function(video) {
-                    videoList.add(new Video({
-                        id: video.id,
-                        title: video.title
-                    }));
-                });
-            },
-            failure: function() {
-                console.log('failure');
-            }
-        });
     };
 
     var logEntryView = new LogEntryView();

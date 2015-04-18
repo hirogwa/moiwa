@@ -76,7 +76,7 @@ def search_artwork():
     result = resource.read().decode(resource.headers.get_content_charset())
     ret = {
         'results': json.loads(result).get('results')[:10],
-        'image_xs': settings.IMAGE_XS
+        'image_xs': settings.POSTER_XS
     }
 
     return Response(json.dumps(ret), mimetype='application/json')
@@ -85,10 +85,31 @@ def search_artwork():
 @app.route('/artwork_images', methods=['GET'])
 def artwork_images():
     id = request.args.get('id')
-    url = '%s/%s/images?api_key=%s' % (
-        settings.MOVIE_URL, id, settings.TMDB_API_KEY)
+    media_type = request.args.get('media_type')
+
+    base_url = settings.TV_URL if media_type == 'tv' else settings.MOVIE_URL
+    url = '%s/%s/images?api_key=%s' % (base_url, id, settings.TMDB_API_KEY)
     data = resourceAsDict(url)
-    return Response(json.dumps(data), mimetype='application/json')
+
+    def get_image(item, uri_base):
+        return {
+            'file_path': item.get('file_path'),
+            'sample_uri': '%s%s' % (uri_base, item.get('file_path')),
+            'all': item
+        }
+
+    def poster_xs(item):
+        return get_image(item, settings.POSTER_XS)
+
+    def backdrop_small(item):
+        return get_image(item, settings.BACKDROP_SMALL)
+
+    ret = {
+        'posters': list(map(poster_xs, data.get('posters'))),
+        'backdrops': list(map(backdrop_small, data.get('backdrops'))),
+    }
+
+    return Response(json.dumps(ret), mimetype='application/json')
 
 
 def resourceAsDict(url):
