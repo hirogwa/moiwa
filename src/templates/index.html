@@ -22,7 +22,6 @@
     <select id="title-select">
       <option title="<%= artwork.original_title  %>"></option>
     </select>
-    <img src="<%= artwork.poster_url %>" alt="" />
 
     <% if (artwork) { %>
     <div id="artwork-info">
@@ -49,7 +48,7 @@
     </div>
     <div id="video-list">
     </div>
-    <textarea class="form-control" rows="7"></textarea>
+    <textarea id="watchlog-content" class="form-control" rows="7"></textarea>
     <input id="watch-date" type="date" class="form-control"
            value="<%= watchLog.date %>" />
     <button id="save-log" class="btn btn-primary">
@@ -71,6 +70,22 @@
 
 <script type="text/template" id="video-template">
   <iframe width="420" height="315" src="https://www.youtube.com/embed/<%= model.id %>" frameborder="0" allowfullscreen></iframe>
+  <div class="video-detail">
+    <% if (model.details) { %>
+    <h2><%= model.details.snippet.title %></h2>
+    <span><%= model.details.publishedAt %></span><br>
+    <span><%= model.details.snippet.channelTitle %></span><br>
+    <span><%= model.details.viewCount %> views</span><br>
+    <span>
+      <i class="fa fa-thumbs-o-up"></i>
+      <%= model.details.likeCount %>
+    </span>
+    <span>
+      <i class="fa fa-thumbs-o-down"></i>
+      <%= model.details.dislikeCount %>
+    </span>
+    <% } %>
+  </div>
   <button class="select-video btn btn-default btn-sm"
           data-video-id="<%= model.id %>">kore</button>
 </script>

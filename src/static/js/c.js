@@ -68,8 +68,36 @@ $(function() {
     });
 
     var Video = Backbone.Model.extend({
-        defaults: {
-            id: ''
+        initialize: function(options) {
+            _.bindAll(this, 'getDetails');
+            if (!options.details) {
+                this.getDetails();
+            }
+        },
+
+        getDetails: function() {
+            this.details = {};
+            var self = this;
+            $.ajax({
+                url: '/video',
+                data: {
+                    id: self.get('id')
+                },
+                success: function(data) {
+                    data.publishedAt = new Date(
+                        Date.parse(data.snippet.publishedAt)).toDateString();
+                    data.viewCount = parseInt(
+                        data.statistics.viewCount, '10').toLocaleString();
+                    data.likeCount = parseInt(
+                        data.statistics.likeCount, '10').toLocaleString();
+                    data.dislikeCount = parseInt(
+                        data.statistics.dislikeCount, '10').toLocaleString();
+                    self.set({'details': data});
+                },
+                failure: function(data) {
+                    console.log('Video getDetails failure');
+                }
+            });
         }
     });
 
@@ -86,11 +114,13 @@ $(function() {
         },
 
         render: function(model) {
-            var attrSelected = 'selected';
+            // at instance creation
             if (!model) {
-                this.$el.html(this.template({model: this.model.toJSON()}));
                 return this;
             }
+
+            // when selected/deselected
+            var attrSelected = 'selected';
             if (model.changedAttributes(attrSelected)) {
                 if (this.model.get(attrSelected)) {
                     this.$el.addClass(attrSelected);
@@ -98,6 +128,12 @@ $(function() {
                     this.$el.removeClass(attrSelected);
                 }
             }
+
+            // when detail loaded
+            if (model.changedAttributes('details')) {
+                this.$el.html(this.template({model: this.model.toJSON()}));
+            }
+
             return this;
         }
     });
@@ -136,7 +172,6 @@ $(function() {
             'click button#save-log': 'saveWatchLog',
             //'click button#add-video-id': 'addVideo',
             'change input#video-id': 'addVideo',
-            'change input#watchlog-title-manual-entry': 'changeLogTitle',
             'change input#watch-date': 'changeWatchDate'
         },
 
@@ -145,7 +180,6 @@ $(function() {
                       'render',
                       'renderOnArtworkChange',
                       'renderAll',
-                      'changeLogTitle',
                       'selectPoster',
                       'selectBackdrop',
                       'addVideo',
@@ -180,14 +214,24 @@ $(function() {
             return this;
         },
 
-        changeLogTitle: function(e) {
-            this.watchLog.set({'title': $(e.currentTarget).val()});
-            return this;
-        },
-
         saveWatchLog: function() {
+            var title = $('#watchlog-title').val();
+            if (!title) {
+                console.log('title empty');
+                return;
+            }
+
+            if (this.watchLog.get('artwork')) {
+                this.watchLog.set({
+                    title: title,
+                    log: $('#watchlog-content').val(),
+                    date: $('#watch-date').val()
+                });
+                this.watchLog.save();
+            } else {
+                console.log('artwork not selected');
+            }
             console.log(this.watchLog);
-            this.watchLog.save();
         },
 
         selectImage: function(e, collection, current) {
@@ -325,7 +369,6 @@ $(function() {
                     'tmdb_id': item.id,
                     'original_title': original_title,
                     'title': title,
-                    'poster_url': item.poster_xs,
                     'release_date': item.release_date
                 });
                 self.watchLog.set({
@@ -373,7 +416,7 @@ $(function() {
             this.videoCandidates.reset();
             var self = this;
             $.ajax({
-                url: '/videos',
+                url: '/search-videos',
                 data: {
                     title: title
                 },

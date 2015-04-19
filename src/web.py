@@ -39,8 +39,22 @@ def ping():
     return 'hi there!'
 
 
-@app.route('/videos', methods=['GET'])
-def videos():
+@app.route('/video', methods=['GET'])
+def video():
+    uri = '%s?id=%s&part=snippet,statistics&key=%s' % (
+        settings.VIDEO_DETAIL,
+        request.args.get('id'),
+        settings.YOUTUBE_API_KEY)
+
+    result = resourceAsDict(uri)
+
+    ret = result.get('items')[0]
+
+    return Response(json.dumps(ret), mimetype='application/json')
+
+
+@app.route('/search-videos', methods=['GET'])
+def search_videos():
     query = quote('%s trailer' % (request.args.get('title')))
     uri = '%s?key=%s&part=id,snippet&maxResults=5&q=%s' % (
         settings.VIDEO_SEARCH,
