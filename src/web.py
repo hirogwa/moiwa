@@ -31,6 +31,20 @@ def artwork():
     return bootstrap()
 
 
+@app.route('/watchlog', methods=['POST'])
+def watchlog():
+    if 'POST' == request.method:
+        data = request.get_json()
+        watchlog = models.WatchLog(data)
+        db.session.add(watchlog)
+        db.session.commit()
+    else:
+        pass
+
+    result = {'result': 'success!'}
+    return Response(json.dumps(result), mimetype='application/success')
+
+
 @app.route('/ping', methods=['GET'])
 def ping():
     print(request.form)

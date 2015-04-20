@@ -1,21 +1,22 @@
 from web import db
-
-
-class Artwork(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.Text)
-    year = db.Column(db.Integer)
-    watchlogs = db.relationship('WatchLog', backref='artwork', lazy='dynamic')
-
-    def __init__(self, kwargs):
-        self.name = kwargs.get('name')
-        self.year = kwargs.get('year')
+import datetime
 
 
 class WatchLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    artwork_id = db.Column(db.Integer, db.ForeignKey('artwork.id'))
-    viewdate = db.Column(db.DateTime)
+    title = db.Column(db.Text)
+    date = db.Column(db.DateTime)
     log = db.Column(db.Text)
+    poster_file_path = db.Column(db.Text)
+    backdrop_file_path = db.Column(db.Text)
+    video_id = db.Column(db.Text)
     entrydate = db.Column(db.DateTime)
-    # poster_url
+
+    def __init__(self, kwargs):
+        self.title = kwargs.get('title')
+        self.date = kwargs.get('date')
+        self.log = kwargs.get('log')
+        self.poster_file_path = kwargs.get('poster').get('file_path')
+        self.backdrop_file_path = kwargs.get('backdrop').get('file_path')
+        self.video_id = kwargs.get('video_id')
+        self.entrydate = datetime.datetime.now()

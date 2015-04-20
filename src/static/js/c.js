@@ -1,17 +1,18 @@
 $(function() {
-    var Artwork = Backbone.Model.extend({
-    });
+    var Artwork = Backbone.Model;
+
+    var Image = Backbone.Model;
 
     var WatchLog = Backbone.Model.extend({
         defaults: {
             title: "",
+            poster: new Image(),
+            backdrop: new Image(),
             video_id: '',
             date: new Date().toISOString().slice(0, 10)
         },
         url: '/watchlog'
     });
-
-    var Image = Backbone.Model;
 
     var ImageList = Backbone.Collection.extend({
         model: Image
@@ -227,7 +228,14 @@ $(function() {
                     log: $('#watchlog-content').val(),
                     date: $('#watch-date').val()
                 });
-                this.watchLog.save();
+                this.watchLog.save(this.watchLog.attributes, {
+                    success: function(data) {
+                        console.log('watchlog saved. redirect...?');
+                    },
+                    error: function(data) {
+                        console.log('failed to save watch log.');
+                    }
+                });
             } else {
                 console.log('artwork not selected');
             }
