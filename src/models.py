@@ -20,3 +20,12 @@ class WatchLog(db.Model):
         self.backdrop_file_path = kwargs.get('backdrop').get('file_path')
         self.video_id = kwargs.get('video_id')
         self.entrydate = datetime.datetime.now()
+
+    def to_dict(self):
+        return {
+            'title': self.title,
+            'date': self.date.isoformat(),
+            'log': self.log,
+            'video_id': self.video_id,
+            'entrydate': self.entrydate.isoformat()
+        }

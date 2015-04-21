@@ -19,16 +19,15 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://{}:{}@{}/{}'.format(
 db = SQLAlchemy(app)
 
 
-@app.route('/artwork', methods=['GET', 'POST'])
-def artwork():
-    if 'POST' == request.method:
-        artwork = models.Artwork(request.get_json())
-        db.session.add(artwork)
-        db.session.commit()
-        print(artwork)
-    else:
-        pass
-    return bootstrap()
+@app.route('/new')
+def create():
+    content = {'stuff': 'very friendly Sapporo local ski resort'}
+    return render_template('edit.html', content=content)
+
+
+@app.route('/list')
+def log_list():
+    return render_template('list.html')
 
 
 @app.route('/watchlog', methods=['POST'])
@@ -42,7 +41,16 @@ def watchlog():
         pass
 
     result = {'result': 'success!'}
-    return Response(json.dumps(result), mimetype='application/success')
+    return json_response(result)
+
+
+@app.route('/watchlogs', methods=['GET'])
+def watchlogs():
+    def to_data(d):
+        return d.to_dict()
+
+    return json_response(
+        list(map(to_data, models.WatchLog.query.all())))
 
 
 @app.route('/ping', methods=['GET'])
@@ -60,11 +68,11 @@ def video():
         request.args.get('id'),
         settings.YOUTUBE_API_KEY)
 
-    result = resourceAsDict(uri)
+    result = resource_as_dict(uri)
 
     ret = result.get('items')[0]
 
-    return Response(json.dumps(ret), mimetype='application/json')
+    return json_response(ret)
 
 
 @app.route('/search-videos', methods=['GET'])
@@ -76,7 +84,7 @@ def search_videos():
         query
     )
 
-    result = resourceAsDict(uri)
+    result = resource_as_dict(uri)
 
     def get_video(api_item):
         return {
@@ -88,7 +96,7 @@ def search_videos():
         'all': result.get('items')
     }
 
-    return Response(json.dumps(ret), mimetype='application/json')
+    return json_response(ret)
 
 
 @app.route('/search-artwork', methods=['GET'])
@@ -107,7 +115,7 @@ def search_artwork():
         'image_xs': settings.POSTER_XS
     }
 
-    return Response(json.dumps(ret), mimetype='application/json')
+    return json_response(ret)
 
 
 @app.route('/artwork_images', methods=['GET'])
@@ -117,7 +125,7 @@ def artwork_images():
 
     base_url = settings.TV_URL if media_type == 'tv' else settings.MOVIE_URL
     url = '%s/%s/images?api_key=%s' % (base_url, id, settings.TMDB_API_KEY)
-    data = resourceAsDict(url)
+    data = resource_as_dict(url)
 
     def get_image(item, uri_base):
         return {
@@ -137,20 +145,19 @@ def artwork_images():
         'backdrops': list(map(backdrop_small, data.get('backdrops'))),
     }
 
-    return Response(json.dumps(ret), mimetype='application/json')
+    return json_response(ret)
 
 
-def resourceAsDict(url):
+def json_response(dict_data):
+    return Response(json.dumps(dict_data), mimetype='application/json')
+
+
+def resource_as_dict(url):
     print(url)
     resource = urlopen(url)
     result = resource.read().decode(resource.headers.get_content_charset())
     return json.loads(result)
 
-
-@app.route('/')
-def bootstrap():
-    content = {'stuff': 'very friendly Sapporo local ski resort'}
-    return render_template('index.html', content=content)
 
 if __name__ == '__main__':
     app.debug = True
