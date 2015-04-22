@@ -294,7 +294,7 @@ $(function() {
             return this;
         },
 
-        addVideo: function(id) {
+        addVideo: function() {
             var elId = '#video-id';
             var id = $(elId).val();
             if (!id) {
@@ -318,10 +318,10 @@ $(function() {
         },
 
         render: function(model) {
-            if (!model || model.changed['tmdb_id']) {
+            if (!model || model.changed.tmdb_id) {
                 return this.renderAll(model);
             }
-            if (model.changed['title']) {
+            if (model.changed.title) {
                 this.$('#watchlog-title').val(model.get('title'));
             }
             return this;
@@ -351,7 +351,7 @@ $(function() {
                     processResults: function(data, page) {
                         return {
                             results: data.results.map(function(result) {
-                                result.poster_xs = data.image_xs + result.poster_path
+                                result.poster_xs = data.image_xs + result.poster_path;
                                 return result;
                             })
                         };
