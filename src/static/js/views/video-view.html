@@ -1,0 +1,19 @@
+<iframe width="420" height="315" src="https://www.youtube.com/embed/<%= model.id %>" frameborder="0" allowfullscreen></iframe>
+<div class="video-detail">
+  <% if (model.details) { %>
+  <h2><%= model.details.snippet.title %></h2>
+  <span><%= model.details.publishedAt %></span><br>
+  <span><%= model.details.snippet.channelTitle %></span><br>
+  <span><%= model.details.viewCount %> views</span><br>
+  <span>
+    <i class="fa fa-thumbs-o-up"></i>
+    <%= model.details.likeCount %>
+  </span>
+  <span>
+    <i class="fa fa-thumbs-o-down"></i>
+    <%= model.details.dislikeCount %>
+  </span>
+  <% } %>
+</div>
+<button class="select-video btn btn-default btn-sm"
+        data-video-id="<%= model.id %>">kore</button>
