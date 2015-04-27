@@ -19,15 +19,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://{}:{}@{}/{}'.format(
 db = SQLAlchemy(app)
 
 
-@app.route('/new')
-def create():
-    content = {'stuff': 'very friendly Sapporo local ski resort'}
-    return render_template('edit.html', content=content)
-
-
-@app.route('/list')
-def log_list():
-    return render_template('list.html')
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 
 @app.route('/watchlog', methods=['POST'])
@@ -50,7 +44,8 @@ def watchlogs():
         return d.to_dict()
 
     return json_response(
-        list(map(to_data, models.WatchLog.query.all())))
+        list(map(to_data, models.WatchLog.query.order_by(
+            models.WatchLog.date.desc()).all())))
 
 
 @app.route('/ping', methods=['GET'])

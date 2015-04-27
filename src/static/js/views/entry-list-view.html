@@ -1,0 +1,10 @@
+<ul class="list-group">
+  <% watchLogs.forEach(function(watchLog) { %>
+  <li class="list-group-item">
+    <div>
+      <h3><%= watchLog.title %></h3>
+      <p><%= watchLog.log %></p>
+    </div>
+  </li>
+  <% }); %>
+</ul>
