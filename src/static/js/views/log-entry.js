@@ -62,10 +62,16 @@ var LogEntryView = Backbone.View.extend({
         }
 
         if (this.watchLog.get('artwork')) {
+            var poster_file_path = this.watchLog.get('poster') ?
+                this.watchLog.get('poster').get('file_path') : '';
+            var backdrop_file_path = this.watchLog.get('backdrop') ?
+                this.watchLog.get('backdrop').get('file_path') : '';
             this.watchLog.set({
                 title: title,
                 log: $('#watchlog-content').val(),
-                date: $('#watch-date').val()
+                date: $('#watch-date').val(),
+                poster_file_path: poster_file_path,
+                backdrop_file_path: backdrop_file_path
             });
             this.watchLog.save(this.watchLog.attributes, {
                 success: function(data) {
@@ -189,18 +195,13 @@ var LogEntryView = Backbone.View.extend({
                 },
                 processResults: function(data, page) {
                     return {
-                        results: data.results.map(function(result) {
-                            result.poster_xs = data.image_xs + result.poster_path;
-                            return result;
-                        })
+                        results: data.results
                     };
                 }
             },
             escapeMarkup: function(markup) {return markup;},
             minimumInputLength: 1,
             templateResult: function(result) {
-                result.original_title = result.original_title ||
-                    result.original_name;
                 return formatResult(result);
             },
             templateSelection: function(item) {
@@ -221,11 +222,44 @@ var LogEntryView = Backbone.View.extend({
             self.watchLog.set({
                 'title': original_title || title
             });
-            self.getImages(item);
+            self.getArtwork(item);
             self.getVideos(item.original_title);
         });
 
         return this;
+    },
+
+    getArtwork: function(item) {
+        console.log(item);
+        this.posterCandidates.reset();
+        this.backdropCandidates.reset();
+        var self = this;
+        $.ajax({
+            url: 'artwork',
+            data: {
+                source: item.source,
+                original_id: item.original_id,
+                media_type: item.media_type
+            },
+            dataType: 'json',
+            success: function(data) {
+                data.backdrops.forEach(function(b) {
+                    self.backdropCandidates.add(new models.Image({
+                        artwork_image_id: b.artwork_image_id,
+                        uri: b.paths.small
+                    }));
+                });
+                data.posters.forEach(function(p) {
+                    self.posterCandidates.add(new models.Image({
+                        artwork_image_id: p.artwork_image_id,
+                        uri: p.paths.small
+                    }));
+                });
+            },
+            error: function(data) {
+                console.log('failed to load images');
+            }
+        });
     },
 
     getImages: function(item) {
@@ -288,8 +322,8 @@ var formatResult = function(result) {
         return result.text;
     }
     return '<div>' +
-        '<img src="' + result.poster_xs + '"/>' +
-        '<span>' + result.original_title + '</span>' +
+        '<img src="' + result.poster_small + '"/>' +
+        '<span>' + result.display_title + '</span>' +
         '</div>';
 };
 

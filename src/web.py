@@ -1,5 +1,4 @@
 from flask import Flask, Response, render_template, request
-from flask.ext.sqlalchemy import SQLAlchemy
 import json
 import models
 import os
@@ -7,16 +6,7 @@ import settings
 from urllib.request import urlopen
 from urllib.parse import quote
 
-
-dbuser = 'vagrant'
-dbpass = 'usagi'
-dbname = 'vagrant'
-dbhost = 'localhost'
-
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://{}:{}@{}/{}'.format(
-    dbuser, dbpass, dbhost, dbname)
-db = SQLAlchemy(app)
 
 
 @app.route('/')
@@ -24,13 +14,34 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/artwork', methods=['GET'])
+def artwork():
+    artwork_id = request.args.get('artwork_id')
+    source = request.args.get('source')
+    original_id = request.args.get('original_id')
+    media_type = request.args.get('media_type')
+
+    if artwork_id:
+        artwork = models.Artwork.get_by_id(artwork_id)
+    else:
+        artwork = models.Artwork.get_by_source(source, original_id)
+
+    if not artwork:
+        artwork = models.Artwork.create_full(
+            source, original_id, media_type=media_type).update_full()
+
+    return json_response(artwork.to_client())
+
+
 @app.route('/watchlog', methods=['POST'])
 def watchlog():
     if 'POST' == request.method:
         data = request.get_json()
+
+        data['poster_id'] = data.get('poster').get('artwork_image_id')
+        data['backdrop_id'] = data.get('backdrop').get('artwork_image_id')
         watchlog = models.WatchLog(data)
-        db.session.add(watchlog)
-        db.session.commit()
+        watchlog.update()
     else:
         pass
 
@@ -39,21 +50,9 @@ def watchlog():
 
 
 @app.route('/watchlogs', methods=['GET'])
-def watchlogs():
-    def to_data(d):
-        return d.to_dict()
-
-    return json_response(
-        list(map(to_data, models.WatchLog.query.order_by(
-            models.WatchLog.date.desc()).all())))
-
-
-@app.route('/ping', methods=['GET'])
-def ping():
-    print(request.form)
-    print(request.args)
-    print(request.get_json())
-    return 'hi there!'
+def watchlogsNeo():
+    logs = models.WatchLog.get_all()
+    return json_response(list(map(lambda x: x.__dict__, logs)))
 
 
 @app.route('/video', methods=['GET'])
@@ -105,6 +104,35 @@ def search_artwork():
     print(uri.encode('utf-8'))
     resource = urlopen(uri)
     result = resource.read().decode(resource.headers.get_content_charset())
+    results = json.loads(result).get('results')[:10]
+
+    def result_to_client(result):
+        result['source'] = models.SOURCE_TMDB
+        result['original_id'] = result.get('id')
+        result['display_title'] = (result.get('original_title') or
+                                   result.get('original_name'))
+        result['poster_small'] = '%s%s' % (
+            settings.POSTER_XS, result.get('poster_path'))
+        return result
+
+    ret = {
+        'results': list(map(result_to_client, results))
+    }
+
+    return json_response(ret)
+
+
+@app.route('/search-artwork-old', methods=['GET'])
+def search_artwork_old():
+    query = quote(request.args.get('title'))
+    uri = '%s?query=%s&api_key=%s' % (
+        settings.MULTI_SEARCH,
+        query,
+        settings.TMDB_API_KEY
+    )
+    print(uri.encode('utf-8'))
+    resource = urlopen(uri)
+    result = resource.read().decode(resource.headers.get_content_charset())
     ret = {
         'results': json.loads(result).get('results')[:10],
         'image_xs': settings.POSTER_XS
@@ -113,6 +141,7 @@ def search_artwork():
     return json_response(ret)
 
 
+# TODO deprecated
 @app.route('/artwork_images', methods=['GET'])
 def artwork_images():
     id = request.args.get('id')
@@ -147,11 +176,20 @@ def json_response(dict_data):
     return Response(json.dumps(dict_data), mimetype='application/json')
 
 
+# TODO this module should not need this. consider deprecating
 def resource_as_dict(url):
     print(url)
     resource = urlopen(url)
     result = resource.read().decode(resource.headers.get_content_charset())
     return json.loads(result)
+
+
+@app.route('/ping', methods=['GET'])
+def ping():
+    print(request.form)
+    print(request.args)
+    print(request.get_json())
+    return 'hi there!'
 
 
 if __name__ == '__main__':

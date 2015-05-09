@@ -1,7 +1,7 @@
 $(function() {
     var AppRouter = Backbone.Router.extend({
         routes: {
-            '' : 'list',
+            '' : 'new',
             'new' : 'new',
             'list': 'list'
         },
