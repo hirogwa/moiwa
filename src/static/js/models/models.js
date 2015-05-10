@@ -10,7 +10,8 @@ var WatchLog = Backbone.Model.extend({
         video_id: '',
         date: new Date().toISOString().slice(0, 10)
     },
-    url: '/watchlog'
+
+    url: '/watchlog',
 });
 
 var Video = Backbone.Model.extend({

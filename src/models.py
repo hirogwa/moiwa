@@ -145,9 +145,10 @@ class ArtworkImage():
     @classmethod
     def get_by_id(cls, artwork_image_id):
         rs = dynamo.query(
-            cls.table_name, artwork_image_id__eq=artwork_image_id)
+            cls.table_name,
+            artwork_image_id__eq=artwork_image_id)
         for val in rs:
-            return ArtworkImage(val)
+            return ArtworkImage(**val)
         return None
 
     @classmethod
@@ -190,24 +191,73 @@ class WatchLog():
 
     table_name = 'WatchLog'
 
-    def __init__(self, data, **kwargs):
-        self.watchlog_id = data.get('watchlog_id') or str(uuid.uuid4())
-        self.title = data.get('title')
-        self.date = data.get('date')
-        self.log = data.get('log')
-        self.poster_id = data.get('poster_id')
-        self.backdrop_id = data.get('backdrop_id')
-        self.video_id = data.get('video_id')
-        self.entrydate = (data.get('entrydate') or
+    def __init__(self, artwork, poster, backdrop, **kwargs):
+        self.watchlog_id = kwargs.get('watchlog_id') or str(uuid.uuid4())
+        self.title = kwargs.get('title')
+        self.date = kwargs.get('date')
+        self.log = kwargs.get('log')
+        self.video_id = kwargs.get('video_id')
+        self.entrydate = (kwargs.get('entrydate') or
                           datetime.datetime.now().isoformat())
 
+        self.artwork = artwork
+        self.poster = poster
+        self.backdrop = backdrop
+
+    def to_table(self):
+        return {
+            'watchlog_id': self.watchlog_id,
+            'title': self.title,
+            'date': self.date,
+            'log': self.log,
+            'entrydate': self.entrydate,
+            'artwork_id': self.artwork.artwork_id,
+            'poster_id': self.poster.artwork_image_id if self.poster else '',
+            'backdrop_id': (
+                self.backdrop.artwork_image_id if self.backdrop else '')
+        }
+
+    def to_client(self):
+        return {
+            'watchlog_id': self.watchlog_id,
+            'title': self.title,
+            'date': self.date,
+            'log': self.log,
+            'entrydate': self.entrydate,
+            'artwork': self.artwork.to_client(),
+            'poster': self.poster.to_client() if self.poster else '',
+            'backdrop': self.backdrop.to_client() if self.backdrop else ''
+        }
+
     def update(self):
-        dynamo.update(self.table_name, self.__dict__)
+        dynamo.update(self.table_name, self.to_table())
+
+    @classmethod
+    def create(cls, **kwargs):
+        artwork = Artwork.get_by_id(kwargs.get('artwork_id'))
+        if 'poster_id' in kwargs:
+            poster = ArtworkImage.get_by_id(kwargs.get('poster_id'))
+        if 'backdrop_id' in kwargs:
+            backdrop = ArtworkImage.get_by_id(kwargs.get('backdrop_id'))
+
+        kwargs.pop('artwork', None)
+        kwargs.pop('poster', None)
+        kwargs.pop('backdrop', None)
+
+        return WatchLog(artwork, poster, backdrop, **kwargs)
 
     @classmethod
     def get_all(cls, **kwargs):
+        def to_instance(result):
+            artwork = Artwork.get_by_id(result.get('artwork_id'))
+            poster = (ArtworkImage.get_by_id(result.get('poster_id'))
+                      if result.get('poster_id') else None)
+            backdrop = (ArtworkImage.get_by_id(result.get('backdrop_id'))
+                        if result.get('backdrop_id') else None)
+            return WatchLog(artwork, poster, backdrop, **result)
+
         rs = dynamo.scan(cls.table_name, **kwargs)
-        return map(WatchLog, rs)
+        return map(to_instance, rs)
 
     @classmethod
     def get(cls, **kwargs):

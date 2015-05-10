@@ -2,6 +2,7 @@
   <% watchLogs.forEach(function(watchLog) { %>
   <li class="list-group-item">
     <div>
+      <img src="<%= watchLog.poster.paths.small %>" />
       <h3><%= watchLog.title %></h3>
       <p><%= watchLog.log %></p>
     </div>

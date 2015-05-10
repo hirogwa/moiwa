@@ -25,7 +25,6 @@ var LogEntryView = Backbone.View.extend({
                   'addVideo',
                   'selectVideo',
                   'changeWatchDate',
-                  'getImages',
                   'getVideos');
 
         var artwork = new models.Artwork();
@@ -67,7 +66,15 @@ var LogEntryView = Backbone.View.extend({
                 log: $('#watchlog-content').val(),
                 date: $('#watch-date').val()
             });
-            this.watchLog.save(this.watchLog.attributes, {
+            this.watchLog.save({
+                artwork: this.watchLog.get('artwork'),
+                title: this.watchLog.get('title'),
+                date: this.watchLog.get('date'),
+                log: this.watchLog.get('log'),
+                video_id: this.watchLog.get('video_id'),
+                poster: this.watchLog.get('poster'),
+                backdrop: this.watchLog.get('backdrop')
+            }, {
                 success: function(data) {
                     console.log('watchlog saved. redirect...?');
                 },
@@ -205,19 +212,11 @@ var LogEntryView = Backbone.View.extend({
 
         $(titleSelect).on('change', function(e) {
             var item = $(titleSelect).select2('data')[0];
-            var original_title = item.original_title || item.original_name;
-            var title = item.title || item.name;
-            self.watchLog.get('artwork').set({
-                'tmdb_id': item.id,
-                'original_title': original_title,
-                'title': title,
-                'release_date': item.release_date
-            });
             self.watchLog.set({
-                'title': original_title || title
+                'title': item.display_title
             });
             self.getArtwork(item);
-            self.getVideos(item.original_title);
+            self.getVideos(item.display_title);
         });
 
         return this;
@@ -237,6 +236,9 @@ var LogEntryView = Backbone.View.extend({
             },
             dataType: 'json',
             success: function(data) {
+                self.watchLog.set({
+                    'artwork': data
+                });
                 data.backdrops.forEach(function(b) {
                     self.backdropCandidates.add(new models.Image({
                         artwork_image_id: b.artwork_image_id,
@@ -247,37 +249,6 @@ var LogEntryView = Backbone.View.extend({
                     self.posterCandidates.add(new models.Image({
                         artwork_image_id: p.artwork_image_id,
                         uri: p.paths.small
-                    }));
-                });
-            },
-            error: function(data) {
-                console.log('failed to load images');
-            }
-        });
-    },
-
-    getImages: function(item) {
-        this.posterCandidates.reset();
-        this.backdropCandidates.reset();
-        var self = this;
-        $.ajax({
-            url: 'artwork_images',
-            data: {
-                id: item.id,
-                media_type: item.media_type
-            },
-            dataType: 'json',
-            success: function(data) {
-                data.backdrops.forEach(function(b) {
-                    self.backdropCandidates.add(new models.Image({
-                        file_path: b.file_path,
-                        uri: b.sample_uri
-                    }));
-                });
-                data.posters.forEach(function(p) {
-                    self.posterCandidates.add(new models.Image({
-                        file_path: p.file_path,
-                        uri: p.sample_uri
                     }));
                 });
             },

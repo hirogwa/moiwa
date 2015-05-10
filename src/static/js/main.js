@@ -1,12 +1,12 @@
 $(function() {
     var AppRouter = Backbone.Router.extend({
         routes: {
-            '' : 'new',
-            'new' : 'new',
+            '' : 'list',
+            'new' : 'newEntry',
             'list': 'list'
         },
 
-        new: function() {
+        newEntry: function() {
             var l = require('./views/log-entry.js');
             new l.LogEntryView();
         },

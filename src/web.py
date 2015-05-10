@@ -38,9 +38,10 @@ def watchlog():
     if 'POST' == request.method:
         data = request.get_json()
 
+        data['artwork_id'] = data.get('artwork').get('artwork_id')
         data['poster_id'] = data.get('poster').get('artwork_image_id')
         data['backdrop_id'] = data.get('backdrop').get('artwork_image_id')
-        watchlog = models.WatchLog(data)
+        watchlog = models.WatchLog.create(**data)
         watchlog.update()
     else:
         pass
@@ -50,9 +51,9 @@ def watchlog():
 
 
 @app.route('/watchlogs', methods=['GET'])
-def watchlogsNeo():
+def watchlogs():
     logs = models.WatchLog.get_all()
-    return json_response(list(map(lambda x: x.__dict__, logs)))
+    return json_response(list(map(lambda x: x.to_client(), logs)))
 
 
 @app.route('/video', methods=['GET'])
