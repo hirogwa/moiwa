@@ -62,16 +62,10 @@ var LogEntryView = Backbone.View.extend({
         }
 
         if (this.watchLog.get('artwork')) {
-            var poster_file_path = this.watchLog.get('poster') ?
-                this.watchLog.get('poster').get('file_path') : '';
-            var backdrop_file_path = this.watchLog.get('backdrop') ?
-                this.watchLog.get('backdrop').get('file_path') : '';
             this.watchLog.set({
                 title: title,
                 log: $('#watchlog-content').val(),
-                date: $('#watch-date').val(),
-                poster_file_path: poster_file_path,
-                backdrop_file_path: backdrop_file_path
+                date: $('#watch-date').val()
             });
             this.watchLog.save(this.watchLog.attributes, {
                 success: function(data) {
@@ -88,9 +82,9 @@ var LogEntryView = Backbone.View.extend({
     },
 
     selectImage: function(e, collection, current) {
-        var filePath = $(e.currentTarget).data('image-file-path');
+        var artworkImageId = $(e.currentTarget).data('artwork-image-id');
         var newlySelected = collection.find(function(image) {
-            return image.get('file_path') === filePath;
+            return image.get('artwork_image_id') === artworkImageId;
         });
         if (newlySelected != current) {
             if (current) {

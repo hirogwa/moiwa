@@ -122,56 +122,6 @@ def search_artwork():
     return json_response(ret)
 
 
-@app.route('/search-artwork-old', methods=['GET'])
-def search_artwork_old():
-    query = quote(request.args.get('title'))
-    uri = '%s?query=%s&api_key=%s' % (
-        settings.MULTI_SEARCH,
-        query,
-        settings.TMDB_API_KEY
-    )
-    print(uri.encode('utf-8'))
-    resource = urlopen(uri)
-    result = resource.read().decode(resource.headers.get_content_charset())
-    ret = {
-        'results': json.loads(result).get('results')[:10],
-        'image_xs': settings.POSTER_XS
-    }
-
-    return json_response(ret)
-
-
-# TODO deprecated
-@app.route('/artwork_images', methods=['GET'])
-def artwork_images():
-    id = request.args.get('id')
-    media_type = request.args.get('media_type')
-
-    base_url = settings.TV_URL if media_type == 'tv' else settings.MOVIE_URL
-    url = '%s/%s/images?api_key=%s' % (base_url, id, settings.TMDB_API_KEY)
-    data = resource_as_dict(url)
-
-    def get_image(item, uri_base):
-        return {
-            'file_path': item.get('file_path'),
-            'sample_uri': '%s%s' % (uri_base, item.get('file_path')),
-            'all': item
-        }
-
-    def poster_xs(item):
-        return get_image(item, settings.POSTER_XS)
-
-    def backdrop_small(item):
-        return get_image(item, settings.BACKDROP_SMALL)
-
-    ret = {
-        'posters': list(map(poster_xs, data.get('posters'))),
-        'backdrops': list(map(backdrop_small, data.get('backdrops'))),
-    }
-
-    return json_response(ret)
-
-
 def json_response(dict_data):
     return Response(json.dumps(dict_data), mimetype='application/json')
 
