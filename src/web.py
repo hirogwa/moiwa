@@ -5,8 +5,34 @@ import os
 import settings
 from urllib.request import urlopen
 from urllib.parse import quote
+import flask_login
 
 app = Flask(__name__)
+app.secret_key = settings.SECRET_KEY
+
+login_manager = flask_login.LoginManager()
+login_manager.init_app(app)
+
+
+@login_manager.user_loader
+def load_user(userid):
+    return models.User.get_by_id(userid)
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    user = models.User.get_by_credentials(username, password)
+    if user:
+        flask_login.login_user(user)
+
+
+@app.route('/admin')
+@flask_login.login_required
+def admin():
+    return render_template('admin.html')
 
 
 @app.route('/')

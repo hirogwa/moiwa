@@ -263,3 +263,27 @@ class WatchLog():
     def get(cls, **kwargs):
         rs = dynamo.query(cls.table_name, **kwargs)
         return map(WatchLog, rs)
+
+
+class User():
+    def __init__(self, user_id):
+        self.user_id = user_id
+        self.is_authenticated = True
+        self.is_active = True
+        self.is_anonymous = False
+
+    @classmethod
+    def get_by_id(cls, user_id):
+        if user_id == settings.MASTER_USER:
+            return User(user_id)
+        return None
+
+    @classmethod
+    def get_by_credentials(cls, username, password):
+        if (username == settings.MASTER_USER and
+                password == settings.MASTER_PASS):
+            return User(settings.MASTER_USER)
+        return None
+
+    def get_id(self):
+        return self.user_id
