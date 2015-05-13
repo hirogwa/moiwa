@@ -28,6 +28,23 @@ def login():
     if user:
         flask_login.login_user(user)
 
+        return 'logged in'
+    return 'not logged in'
+
+
+@app.route('/logout')
+@flask_login.login_required
+def logout():
+    flask_login.logout_user()
+    return 'logged out'
+
+
+@app.route('/test')
+def test():
+    user = models.User.get_by_id('moiwa')
+    flask_login.login_user(user)
+    return 'logged in'
+
 
 @app.route('/admin')
 @flask_login.login_required

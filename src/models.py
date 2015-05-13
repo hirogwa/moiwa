@@ -268,9 +268,9 @@ class WatchLog():
 class User():
     def __init__(self, user_id):
         self.user_id = user_id
-        self.is_authenticated = True
-        self.is_active = True
-        self.is_anonymous = False
+        self._is_authenticated = True
+        self._is_active = True
+        self._is_anonymous = False
 
     @classmethod
     def get_by_id(cls, user_id):
@@ -285,5 +285,34 @@ class User():
             return User(settings.MASTER_USER)
         return None
 
+    @property
+    def user_id(self):
+        return self._user_id
+
+    @user_id.setter
+    def user_id(self, value):
+        self._user_id = value
+
+    def is_authenticated(self):
+        '''
+        flask_login
+        '''
+        return self._is_authenticated
+
+    def is_active(self):
+        '''
+        flask_login
+        '''
+        return self._is_active
+
+    def is_anonymous(self):
+        '''
+        flask_login
+        '''
+        return self._is_anonymous
+
     def get_id(self):
+        '''
+        flask_login
+        '''
         return self.user_id
