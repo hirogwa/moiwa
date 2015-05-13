@@ -1,0 +1,22 @@
+body {
+    padding-top: 40px;
+    padding-bottom: 40px;
+    background-color: #111010;
+    color: #ffffff;
+    font-family: Futura;
+    font-weight: light;
+}
+
+.form-login {
+    max-width: 330px;
+    margin: auto;
+}
+
+.form-control {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+
+.form-login button {
+    margin-top: 1em;
+}

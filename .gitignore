@@ -4,6 +4,5 @@ src/__pycache__
 .DS_Store
 *#
 settings.py
-bundle.js
+*bundle.js
 node_modules
-

@@ -1,4 +1,4 @@
-from flask import Flask, Response, render_template, request
+from flask import Flask, Response, render_template, request, redirect, url_for
 import json
 import models
 import os
@@ -19,31 +19,34 @@ def load_user(userid):
     return models.User.get_by_id(userid)
 
 
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
-    user = models.User.get_by_credentials(username, password)
-    if user:
-        flask_login.login_user(user)
+@login_manager.unauthorized_handler
+def unauthorized():
+    return redirect(url_for('login'))
 
-        return 'logged in'
-    return 'not logged in'
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if 'POST' == request.method:
+        data = request.form
+        username = data.get('username')
+        password = data.get('password')
+        user = models.User.get_by_credentials(username, password)
+        if user:
+            flask_login.login_user(user)
+            return redirect(url_for('admin'))
+        return redirect(url_for('login'))
+
+    if 'GET' == request.method:
+        if flask_login.current_user.is_authenticated():
+            return redirect(url_for('admin'))
+        return render_template('login.html')
 
 
 @app.route('/logout')
 @flask_login.login_required
 def logout():
     flask_login.logout_user()
-    return 'logged out'
-
-
-@app.route('/test')
-def test():
-    user = models.User.get_by_id('moiwa')
-    flask_login.login_user(user)
-    return 'logged in'
+    return redirect(url_for('login'))
 
 
 @app.route('/admin')
@@ -54,7 +57,12 @@ def admin():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('profile.html')
+
+
+@app.route('/<username>', methods=['GET'])
+def user(username):
+    return username
 
 
 @app.route('/artwork', methods=['GET'])
@@ -77,17 +85,15 @@ def artwork():
 
 
 @app.route('/watchlog', methods=['POST'])
-def watchlog():
-    if 'POST' == request.method:
-        data = request.get_json()
+@flask_login.login_required
+def update_watchlog():
+    data = request.get_json()
 
-        data['artwork_id'] = data.get('artwork').get('artwork_id')
-        data['poster_id'] = data.get('poster').get('artwork_image_id')
-        data['backdrop_id'] = data.get('backdrop').get('artwork_image_id')
-        watchlog = models.WatchLog.create(**data)
-        watchlog.update()
-    else:
-        pass
+    data['artwork_id'] = data.get('artwork').get('artwork_id')
+    data['poster_id'] = data.get('poster').get('artwork_image_id')
+    data['backdrop_id'] = data.get('backdrop').get('artwork_image_id')
+    watchlog = models.WatchLog.create(**data)
+    watchlog.update()
 
     result = {'result': 'success!'}
     return json_response(result)

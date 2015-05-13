@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" type="text/css" href="/static/css/login.css">
+{% endblock %}
+
+{% block content %}
+
+<form class="form-login">
+  <h3 class="form-login-heading">Already have an account?</h3>
+  <label for="input-user-name" class="sr-only">Username</label>
+  <input type="" id="input-user-name" name="username"
+         class="form-control" placeholder="Username" required autofocus>
+  <label for="input-password" class="sr-only">Password</label>
+  <input type="password" id="input-password" name="password"
+         class="form-control" placeholder="Password" required>
+  <button class="btn btn-lg btn-primary btn-block"
+          type="submit" formmethod="post">
+    Log in
+  </button>
+</form>
+
+{% endblock %}

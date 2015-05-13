@@ -1,22 +1,20 @@
 $(function() {
     var AppRouter = Backbone.Router.extend({
         routes: {
-            '' : 'list',
-            'new' : 'newEntry',
-            'list': 'list'
+            '' : 'newEntry',
+            'new': 'newEntry'
         },
 
         newEntry: function() {
+            console.log('newEntry');
             var l = require('./views/log-entry.js');
             new l.LogEntryView();
-        },
-
-        list: function() {
-            var l = require('./views/entry-list.js');
-            new l.EntryListView();
         }
     });
 
     var router = new AppRouter();
-    Backbone.history.start({pushState: true});
+    Backbone.history.start({
+        root: '/admin',
+        pushState: true
+    });
 });
