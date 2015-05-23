@@ -99,6 +99,13 @@ def update_watchlog():
     return json_response(result)
 
 
+@app.route('/watchlog', methods=['GET'])
+def watchlog():
+    watchlog = models.WatchLog.get_by_id(request.args.get('watchlog_id'))
+    return json_response(
+        watchlog.to_client() if watchlog else {'result': 'not found'})
+
+
 @app.route('/watchlogs', methods=['GET'])
 def watchlogs():
     logs = models.WatchLog.get_all()

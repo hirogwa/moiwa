@@ -191,7 +191,7 @@ class WatchLog():
 
     table_name = 'WatchLog'
 
-    def __init__(self, artwork, poster, backdrop, **kwargs):
+    def __init__(self, artwork=None, poster=None, backdrop=None, **kwargs):
         self.watchlog_id = kwargs.get('watchlog_id') or str(uuid.uuid4())
         self.title = kwargs.get('title')
         self.date = kwargs.get('date')
@@ -224,7 +224,7 @@ class WatchLog():
             'date': self.date,
             'log': self.log,
             'entrydate': self.entrydate,
-            'artwork': self.artwork.to_client(),
+            'artwork': self.artwork.to_client() if self.artwork else '',
             'poster': self.poster.to_client() if self.poster else '',
             'backdrop': self.backdrop.to_client() if self.backdrop else ''
         }
@@ -258,6 +258,13 @@ class WatchLog():
 
         rs = dynamo.scan(cls.table_name, **kwargs)
         return map(to_instance, rs)
+
+    @classmethod
+    def get_by_id(cls, watchlog_id):
+        rs = dynamo.query(cls.table_name, watchlog_id__eq=watchlog_id)
+        for val in rs:
+            return WatchLog(**val)
+        return None
 
     @classmethod
     def get(cls, **kwargs):
